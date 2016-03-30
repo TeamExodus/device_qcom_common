@@ -54,7 +54,6 @@ int get_number_of_profiles() {
 }
 
 static int current_power_profile = PROFILE_BALANCED;
-static int low_power_mode = 0;
 
 static void set_power_profile(int profile) {
 
@@ -169,19 +168,8 @@ static int process_video_encode_hint(void *metadata)
 int power_hint_override(__attribute__((unused)) struct power_module *module,
         power_hint_t hint, void *data)
 {
-    if (hint == POWER_HINT_SET_PROFILE && !low_power_mode) {
+    if (hint == POWER_HINT_SET_PROFILE) {
         set_power_profile(*(int32_t *)data);
-        return HINT_HANDLED;
-    }
-
-    if (hint == POWER_HINT_LOW_POWER) {
-        if (low_power_mode) {
-            set_power_profile(PROFILE_BALANCED);
-            low_power_mode = 0;
-        } else {
-            set_power_profile(PROFILE_POWER_SAVE);
-            low_power_mode = 1;
-        }
         return HINT_HANDLED;
     }
 
@@ -192,10 +180,36 @@ int power_hint_override(__attribute__((unused)) struct power_module *module,
     }
 
     if (hint == POWER_HINT_INTERACTION) {
-        int resources[] = { SCHED_BOOST_ON, 0x20D, 0x101, 0x3E01 };
-        int duration = 3000;
+        int duration = 500, duration_hint = 0;
+        static unsigned long long previous_boost_time = 0;
 
-        interaction(duration, sizeof(resources)/sizeof(resources[0]), resources);
+        if (data) {
+            duration_hint = *((int *)data);
+        }
+
+        duration = duration_hint > 0 ? duration_hint : 500;
+
+        struct timeval cur_boost_timeval = {0, 0};
+        gettimeofday(&cur_boost_timeval, NULL);
+        unsigned long long cur_boost_time = cur_boost_timeval.tv_sec * 1000000 + cur_boost_timeval.tv_usec;
+        double elapsed_time = (double)(cur_boost_time - previous_boost_time);
+        if (elapsed_time > 750000)
+            elapsed_time = 750000;
+        // don't hint if it's been less than 250ms since last boost
+        // also detect if we're doing anything resembling a fling
+        // support additional boosting in case of flings
+        else if (elapsed_time < 250000 && duration <= 750)
+            return HINT_HANDLED;
+
+        previous_boost_time = cur_boost_time;
+
+        if (duration >= 1500) {
+            int resources[] = { SCHED_BOOST_ON, 0x20D, 0x101, 0x3E01 };
+            interaction(duration, sizeof(resources)/sizeof(resources[0]), resources);
+        } else {
+            int resources[] = { 0x20D, 0x101, 0x3E01 };
+            interaction(duration, sizeof(resources)/sizeof(resources[0]), resources);
+        }
         return HINT_HANDLED;
     }
 
