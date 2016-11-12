@@ -13,8 +13,14 @@ BOARD_SECCOMP_POLICY += device/qcom/common/seccomp
 # include additional build utilities
 include device/qcom/common/utils.mk
 
+ifneq ($(HOST_OS),linux)
+$(warning ****************************************************************)
+$(warning * SDCLANG is not supported on non-linux hosts. Disabling...)
+$(warning ****************************************************************)
+else
 # include definitions for SDCLANG
 include device/qcom/common/sdclang/sdclang.mk
+endif
 
 # Qualcomm specific packages
 PRODUCT_PACKAGES += SnapdragonCamera
