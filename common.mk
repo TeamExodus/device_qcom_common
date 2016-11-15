@@ -8,6 +8,9 @@ TARGET_USES_QCOM_MM_AUDIO := true
 
 BOARD_USES_ADRENO := true
 
+# QCOM SECCOMP media permissions
+BOARD_SECCOMP_POLICY += device/qcom/common/seccomp
+
 # include additional build utilities
 include device/qcom/common/utils.mk
 
