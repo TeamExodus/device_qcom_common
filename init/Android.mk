@@ -1,4 +1,5 @@
 ifeq ($(TARGET_INIT_VENDOR_LIB),libinit_msm)
+ifeq ($(CUSTOM_LIBINIT_MSM),)
 
 LOCAL_PATH := $(call my-dir)
 LIBINIT_MSM_PATH := $(call my-dir)
@@ -18,4 +19,5 @@ endif
 LOCAL_MODULE := libinit_msm
 include $(BUILD_STATIC_LIBRARY)
 
+endif
 endif
